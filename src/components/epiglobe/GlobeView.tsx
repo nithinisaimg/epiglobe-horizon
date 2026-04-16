@@ -61,7 +61,7 @@ const GlobeView = forwardRef<GlobeHandle, GlobeViewProps>(({ diseaseData, onCoun
       const w = containerRef.current.clientWidth;
       const h = containerRef.current.clientHeight;
 
-      instance = Globe()(containerRef.current)
+      instance = new Globe(containerRef.current)
         .width(w)
         .height(h)
         .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
