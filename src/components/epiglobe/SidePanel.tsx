@@ -4,6 +4,7 @@ import { fetchHistorical } from '@/utils/diseaseAPI';
 import { runSIRModel, getRiskForecast } from '@/utils/sirModel';
 import type { SIRResult } from '@/utils/sirModel';
 import { synthesizeHistorical, severityLevelFor, type DiseaseDef } from '@/utils/diseaseRegistry';
+import { getDiseaseInfo } from '@/utils/diseaseInfo';
 import DiseaseChart from './DiseaseChart';
 import HistoricalDiseases from './HistoricalDiseases';
 
@@ -89,6 +90,7 @@ export default function SidePanel({ country, countryName, timeMode, disease, onC
 
   const severity = severityLevelFor(country.active, disease);
   const forecast = predictions ? getRiskForecast(predictions) : null;
+  const info = getDiseaseInfo(disease.id);
 
   return (
     <div
@@ -150,31 +152,46 @@ export default function SidePanel({ country, countryName, timeMode, disease, onC
         {/* Chart */}
         <div>
           <div className="text-[10px] tracking-[0.15em] uppercase mb-2" style={{ color: '#E8EDF555' }}>
-            {timeMode === 'PAST' ? 'Historical Trend (180 days)' : timeMode === 'PRESENT' ? 'Current Trend' : '30-Day Forecast (SIR Model)'}
+            {timeMode === 'PAST' ? 'Historical Trend' : 'Current Trend'}
           </div>
           <DiseaseChart
             historical={historical}
-            predictions={timeMode === 'FUTURE' ? predictions : null}
+            predictions={null}
             timeMode={timeMode}
             loading={chartLoading}
           />
         </div>
 
-        {/* Future risk forecast */}
-        {timeMode === 'FUTURE' && forecast && (
-          <div className="p-3" style={{ background: '#0D1525', border: '1px solid #1A2540' }}>
-            <div className="text-[10px] tracking-[0.15em] uppercase mb-2" style={{ color: '#E8EDF555' }}>
-              Risk Forecast
-            </div>
-            <div className="text-xs space-y-1" style={{ color: '#E8EDF5CC' }}>
-              <div>Trend: <span style={{ color: forecast.trend === 'increasing' ? '#FF3B3B' : forecast.trend === 'decreasing' ? '#1DB954' : '#FFB347' }}>
-                {forecast.trend.toUpperCase()}
-              </span></div>
-              <div>Peak: Day {forecast.peakDay} ({forecast.peakInfected.toLocaleString()} cases)</div>
-              <div>Risk Level: <span style={{ color: '#FFB347' }}>{forecast.riskLevel}</span></div>
-            </div>
+        {/* Prediction / Outlook */}
+        <div>
+          <div className="text-[10px] tracking-[0.15em] uppercase mb-2 flex items-center gap-2" style={{ color: '#FFB347' }}>
+            <span>◈</span> Prediction / Outlook
           </div>
-        )}
+          <div className="p-3 space-y-2" style={{ background: '#0D1525', border: '1px solid #1A2540', borderLeft: '2px solid #FFB347' }}>
+            <p className="text-xs leading-relaxed" style={{ color: '#E8EDF5CC' }}>
+              {info.prediction}
+            </p>
+            {forecast && (
+              <div className="pt-2 mt-2 text-[11px] space-y-1" style={{ color: '#E8EDF599', borderTop: '1px solid #1A2540' }}>
+                <div>SIR 30-day trend: <span style={{ color: forecast.trend === 'increasing' ? '#FF3B3B' : forecast.trend === 'decreasing' ? '#1DB954' : '#FFB347' }}>{forecast.trend.toUpperCase()}</span></div>
+                <div>Projected peak: Day {forecast.peakDay} ({forecast.peakInfected.toLocaleString()} cases)</div>
+                <div>Risk level: <span style={{ color: '#FFB347' }}>{forecast.riskLevel}</span></div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Cure / Treatment */}
+        <div>
+          <div className="text-[10px] tracking-[0.15em] uppercase mb-2 flex items-center gap-2" style={{ color: '#1DB954' }}>
+            <span>✚</span> Cure & Prevention
+          </div>
+          <div className="p-3" style={{ background: '#0D1525', border: '1px solid #1A2540', borderLeft: '2px solid #1DB954' }}>
+            <p className="text-xs leading-relaxed" style={{ color: '#E8EDF5CC' }}>
+              {info.cure}
+            </p>
+          </div>
+        </div>
 
         {/* AI Briefing */}
         <div>

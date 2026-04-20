@@ -27,6 +27,19 @@ function Index() {
   const [selectedCountry, setSelectedCountry] = useState<CountryDiseaseData | null>(null);
   const [selectedName, setSelectedName] = useState('');
   const [timeMode, setTimeMode] = useState('PRESENT');
+
+  // When time mode changes, if selected disease doesn't belong to that era, auto-pick a default.
+  useEffect(() => {
+    const wantPast = timeMode === 'PAST';
+    const isPast = disease.era === 'past';
+    if (wantPast && !isPast) {
+      const firstPast = DISEASES.find(d => d.era === 'past');
+      if (firstPast) setDisease(firstPast);
+    } else if (!wantPast && isPast) {
+      const firstCurrent = DISEASES.find(d => d.era !== 'past');
+      if (firstCurrent) setDisease(firstCurrent);
+    }
+  }, [timeMode, disease]);
   const [showIntro, setShowIntro] = useState(true);
   const [GlobeComponent, setGlobeComponent] = useState<any>(null);
   const globeRef = useRef<GlobeHandle>(null);
