@@ -110,7 +110,8 @@ function Index() {
       {/* Navigation */}
       <div className="absolute top-0 left-0 right-0 z-20">
         <NavBar timeMode={timeMode} onTimeModeChange={setTimeMode} disease={disease} onDiseaseChange={setDisease} />
-        <TickerStrip data={countries} disease={disease} />
+        {/* Ticker always uses real base-country list and shows each country's worst non-COVID disease */}
+        <TickerStrip data={baseCountries} />
       </div>
 
       {/* Search */}
