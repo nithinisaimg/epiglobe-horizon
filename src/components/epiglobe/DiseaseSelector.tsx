@@ -4,6 +4,7 @@ import { DISEASES, type DiseaseDef } from '@/utils/diseaseRegistry';
 interface Props {
   selected: DiseaseDef;
   onChange: (d: DiseaseDef) => void;
+  timeMode: string; // 'PAST' or 'PRESENT'
 }
 
 const ERA_LABEL: Record<DiseaseDef['era'], string> = {
@@ -18,7 +19,7 @@ const ERA_COLOR: Record<DiseaseDef['era'], string> = {
   past: '#FF6B35',
 };
 
-export default function DiseaseSelector({ selected, onChange }: Props) {
+export default function DiseaseSelector({ selected, onChange, timeMode }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -30,8 +31,13 @@ export default function DiseaseSelector({ selected, onChange }: Props) {
     return () => document.removeEventListener('click', onDoc);
   }, []);
 
+  // Filter diseases by time-mode: PAST = historical outbreaks; PRESENT = current + recent
+  const visible = DISEASES.filter(d =>
+    timeMode === 'PAST' ? d.era === 'past' : d.era !== 'past',
+  );
   const grouped: Record<DiseaseDef['era'], DiseaseDef[]> = { current: [], recent: [], past: [] };
-  DISEASES.forEach(d => grouped[d.era].push(d));
+  visible.forEach(d => grouped[d.era].push(d));
+  const visibleEras = (['current', 'recent', 'past'] as const).filter(e => grouped[e].length > 0);
 
   return (
     <div ref={ref} className="relative">
@@ -55,7 +61,7 @@ export default function DiseaseSelector({ selected, onChange }: Props) {
           className="absolute top-full right-0 mt-1 w-72 max-h-[70vh] overflow-y-auto z-50"
           style={{ background: '#0A1020', border: '1px solid #1A2540' }}
         >
-          {(['current', 'recent', 'past'] as const).map(era => (
+          {visibleEras.map(era => (
             <div key={era}>
               <div
                 className="px-3 py-1.5 text-[9px] tracking-[0.2em] uppercase"
