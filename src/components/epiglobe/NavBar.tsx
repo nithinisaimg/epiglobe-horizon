@@ -1,11 +1,16 @@
+import DiseaseSelector from './DiseaseSelector';
+import type { DiseaseDef } from '@/utils/diseaseRegistry';
+
 interface NavBarProps {
   timeMode: string;
   onTimeModeChange: (mode: string) => void;
+  disease: DiseaseDef;
+  onDiseaseChange: (d: DiseaseDef) => void;
 }
 
 const TIME_MODES = ['PAST', 'PRESENT', 'FUTURE'] as const;
 
-export default function NavBar({ timeMode, onTimeModeChange }: NavBarProps) {
+export default function NavBar({ timeMode, onTimeModeChange, disease, onDiseaseChange }: NavBarProps) {
   return (
     <nav className="relative z-20 flex items-center justify-between px-6 py-3"
       style={{ background: 'rgba(5,10,20,0.85)', borderBottom: '1px solid #1A2540', backdropFilter: 'blur(8px)' }}>
@@ -20,8 +25,11 @@ export default function NavBar({ timeMode, onTimeModeChange }: NavBarProps) {
         </div>
       </div>
 
-      {/* Center - intentionally empty */}
-      <div />
+      {/* Center - disease selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: '#E8EDF555' }}>Disease</span>
+        <DiseaseSelector selected={disease} onChange={onDiseaseChange} />
+      </div>
 
       {/* Time mode toggle */}
       <div className="flex gap-0">

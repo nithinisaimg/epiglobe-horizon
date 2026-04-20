@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import type { CountryDiseaseData } from '@/utils/diseaseAPI';
-import { getSeverityColor } from '@/utils/diseaseAPI';
+import { severityColorFor, type DiseaseDef } from '@/utils/diseaseRegistry';
 
 const GEOJSON_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
 
@@ -11,6 +11,7 @@ export interface GlobeHandle {
 interface GlobeViewProps {
   diseaseData: CountryDiseaseData[];
   onCountryClick: (country: CountryDiseaseData, name: string) => void;
+  disease: DiseaseDef;
 }
 
 function matchCountry(d: CountryDiseaseData, feat: any): boolean {
@@ -21,14 +22,16 @@ function matchCountry(d: CountryDiseaseData, feat: any): boolean {
   return false;
 }
 
-const GlobeView = forwardRef<GlobeHandle, GlobeViewProps>(({ diseaseData, onCountryClick }, ref) => {
+const GlobeView = forwardRef<GlobeHandle, GlobeViewProps>(({ diseaseData, onCountryClick, disease }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const dataRef = useRef<CountryDiseaseData[]>(diseaseData);
   const callbackRef = useRef(onCountryClick);
-  
+  const diseaseRef = useRef<DiseaseDef>(disease);
+
   dataRef.current = diseaseData;
   callbackRef.current = onCountryClick;
+  diseaseRef.current = disease;
 
   useImperativeHandle(ref, () => ({
     flyTo: (lat: number, lng: number) => {
@@ -41,7 +44,7 @@ const GlobeView = forwardRef<GlobeHandle, GlobeViewProps>(({ diseaseData, onCoun
     if (!data.length) return '#1A2540';
     const match = data.find(d => matchCountry(d, feat));
     if (!match) return '#1A2540';
-    return getSeverityColor(match.active);
+    return severityColorFor(match.active, diseaseRef.current);
   }, []);
 
   useEffect(() => {

@@ -1,14 +1,16 @@
 import type { GlobalStats } from '@/utils/diseaseAPI';
+import type { DiseaseDef } from '@/utils/diseaseRegistry';
 
 interface StatsBarProps {
   stats: GlobalStats | null;
+  disease: DiseaseDef;
 }
 
-export default function StatsBar({ stats }: StatsBarProps) {
+export default function StatsBar({ stats, disease }: StatsBarProps) {
   if (!stats) return null;
 
   const items = [
-    { label: 'GLOBAL CASES', value: stats.cases },
+    { label: `${disease.short.toUpperCase()} CASES`, value: stats.cases },
     { label: 'DEATHS', value: stats.deaths },
     { label: 'COUNTRIES', value: stats.affectedCountries },
     { label: 'LAST UPDATED', value: new Date(stats.updated).toLocaleTimeString() },

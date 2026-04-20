@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import NavBar from '@/components/epiglobe/NavBar';
 import TickerStrip from '@/components/epiglobe/TickerStrip';
 import StatsBar from '@/components/epiglobe/StatsBar';
@@ -8,6 +8,7 @@ import SidePanel from '@/components/epiglobe/SidePanel';
 import type { CountryDiseaseData, GlobalStats } from '@/utils/diseaseAPI';
 import { fetchAllCountries, fetchGlobalStats } from '@/utils/diseaseAPI';
 import type { GlobeHandle } from '@/components/epiglobe/GlobeView';
+import { DISEASES, synthesizeCountryData, synthesizeGlobalStats, type DiseaseDef } from '@/utils/diseaseRegistry';
 
 export const Route = createFileRoute('/')({
   component: Index,
@@ -20,8 +21,9 @@ export const Route = createFileRoute('/')({
 });
 
 function Index() {
-  const [countries, setCountries] = useState<CountryDiseaseData[]>([]);
-  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+  const [baseCountries, setBaseCountries] = useState<CountryDiseaseData[]>([]);
+  const [covidGlobal, setCovidGlobal] = useState<GlobalStats | null>(null);
+  const [disease, setDisease] = useState<DiseaseDef>(DISEASES[0]);
   const [selectedCountry, setSelectedCountry] = useState<CountryDiseaseData | null>(null);
   const [selectedName, setSelectedName] = useState('');
   const [timeMode, setTimeMode] = useState('PRESENT');
@@ -38,8 +40,8 @@ function Index() {
 
   // Fetch data
   useEffect(() => {
-    fetchAllCountries().then(setCountries).catch(console.error);
-    fetchGlobalStats().then(setGlobalStats).catch(console.error);
+    fetchAllCountries().then(setBaseCountries).catch(console.error);
+    fetchGlobalStats().then(setCovidGlobal).catch(console.error);
   }, []);
 
   // Hide intro
@@ -47,6 +49,23 @@ function Index() {
     const t = setTimeout(() => setShowIntro(false), 4000);
     return () => clearTimeout(t);
   }, []);
+
+  const countries = useMemo(
+    () => synthesizeCountryData(baseCountries, disease),
+    [baseCountries, disease],
+  );
+  const globalStats = useMemo(
+    () => (disease.id === 'covid19' ? covidGlobal : synthesizeGlobalStats(countries)),
+    [disease, covidGlobal, countries],
+  );
+
+  // When disease changes, refresh the selected country's data so side panel updates
+  useEffect(() => {
+    if (!selectedCountry) return;
+    const refreshed = countries.find(c => c.country === selectedCountry.country);
+    if (refreshed) setSelectedCountry(refreshed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disease, countries]);
 
   const handleCountryClick = useCallback((country: CountryDiseaseData, name: string) => {
     setSelectedCountry(country);
@@ -72,6 +91,7 @@ function Index() {
           ref={globeRef}
           diseaseData={countries}
           onCountryClick={handleCountryClick}
+          disease={disease}
         />
       )}
 
@@ -89,8 +109,8 @@ function Index() {
 
       {/* Navigation */}
       <div className="absolute top-0 left-0 right-0 z-20">
-        <NavBar timeMode={timeMode} onTimeModeChange={setTimeMode} />
-        <TickerStrip data={countries} />
+        <NavBar timeMode={timeMode} onTimeModeChange={setTimeMode} disease={disease} onDiseaseChange={setDisease} />
+        <TickerStrip data={countries} disease={disease} />
       </div>
 
       {/* Search */}
@@ -101,11 +121,12 @@ function Index() {
         country={selectedCountry}
         countryName={selectedName}
         timeMode={timeMode}
+        disease={disease}
         onClose={handleClose}
       />
 
       {/* Bottom Stats */}
-      <StatsBar stats={globalStats} />
+      <StatsBar stats={globalStats ?? null} disease={disease} />
     </div>
   );
 }
