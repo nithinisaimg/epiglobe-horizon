@@ -126,7 +126,7 @@ function Index() {
       />
 
       {/* Bottom Stats */}
-      <StatsBar stats={globalStats} />
+      <StatsBar stats={globalStats ?? null} disease={disease} />
     </div>
   );
 }
