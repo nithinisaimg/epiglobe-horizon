@@ -136,7 +136,7 @@
 }
 
 .ticker-animate {
-  animation: ticker-scroll 60s linear infinite;
+  animation: ticker-scroll 240s linear infinite;
 }
 
 /* Pulse animation for extreme risk */
