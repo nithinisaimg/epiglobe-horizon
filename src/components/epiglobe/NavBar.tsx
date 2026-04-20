@@ -8,7 +8,7 @@ interface NavBarProps {
   onDiseaseChange: (d: DiseaseDef) => void;
 }
 
-const TIME_MODES = ['PAST', 'PRESENT', 'FUTURE'] as const;
+const TIME_MODES = ['PAST', 'PRESENT'] as const;
 
 export default function NavBar({ timeMode, onTimeModeChange, disease, onDiseaseChange }: NavBarProps) {
   return (
@@ -28,7 +28,7 @@ export default function NavBar({ timeMode, onTimeModeChange, disease, onDiseaseC
       {/* Center - disease selector */}
       <div className="flex items-center gap-2">
         <span className="text-[10px] tracking-[0.2em] uppercase" style={{ color: '#E8EDF555' }}>Disease</span>
-        <DiseaseSelector selected={disease} onChange={onDiseaseChange} />
+        <DiseaseSelector selected={disease} onChange={onDiseaseChange} timeMode={timeMode} />
       </div>
 
       {/* Time mode toggle */}
