@@ -4,6 +4,7 @@ import { fetchHistorical, getSeverityLevel } from '@/utils/diseaseAPI';
 import { runSIRModel, getRiskForecast } from '@/utils/sirModel';
 import type { SIRResult } from '@/utils/sirModel';
 import DiseaseChart from './DiseaseChart';
+import HistoricalDiseases from './HistoricalDiseases';
 
 interface SidePanelProps {
   country: CountryDiseaseData | null;
@@ -188,6 +189,9 @@ export default function SidePanel({ country, countryName, timeMode, onClose }: S
             Enable Lovable Cloud for live AI-powered briefings
           </div>
         </div>
+
+        {/* Past diseases for this country */}
+        <HistoricalDiseases country={country.country} continent={country.continent} />
       </div>
     </div>
   );
