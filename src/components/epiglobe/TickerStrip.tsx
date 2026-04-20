@@ -61,7 +61,7 @@ export default function TickerStrip({ data }: TickerStripProps) {
 
   return (
     <div
-      className="relative z-20 overflow-hidden"
+      className="relative z-10 overflow-hidden"
       style={{ height: 28, background: '#0A1020', borderBottom: '1px solid #1A2540' }}
     >
       <div className="ticker-animate flex items-center h-full" style={{ width: 'max-content' }}>

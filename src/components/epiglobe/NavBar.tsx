@@ -12,7 +12,7 @@ const TIME_MODES = ['PAST', 'PRESENT'] as const;
 
 export default function NavBar({ timeMode, onTimeModeChange, disease, onDiseaseChange }: NavBarProps) {
   return (
-    <nav className="relative z-20 flex items-center justify-between px-6 py-3"
+    <nav className="relative z-30 flex items-center justify-between px-6 py-3"
       style={{ background: 'rgba(5,10,20,0.85)', borderBottom: '1px solid #1A2540', backdropFilter: 'blur(8px)' }}>
       
       {/* Brand */}
