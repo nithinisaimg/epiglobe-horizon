@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { CountryDiseaseData, HistoricalData } from '@/utils/diseaseAPI';
-import { fetchHistorical, getSeverityLevel } from '@/utils/diseaseAPI';
+import { fetchHistorical } from '@/utils/diseaseAPI';
 import { runSIRModel, getRiskForecast } from '@/utils/sirModel';
 import type { SIRResult } from '@/utils/sirModel';
+import { synthesizeHistorical, severityLevelFor, type DiseaseDef } from '@/utils/diseaseRegistry';
 import DiseaseChart from './DiseaseChart';
 import HistoricalDiseases from './HistoricalDiseases';
 
@@ -10,6 +11,7 @@ interface SidePanelProps {
   country: CountryDiseaseData | null;
   countryName: string;
   timeMode: string;
+  disease: DiseaseDef;
   onClose: () => void;
 }
 
@@ -41,48 +43,51 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   );
 }
 
-export default function SidePanel({ country, countryName, timeMode, onClose }: SidePanelProps) {
+export default function SidePanel({ country, countryName, timeMode, disease, onClose }: SidePanelProps) {
   const [historical, setHistorical] = useState<HistoricalData | null>(null);
   const [predictions, setPredictions] = useState<SIRResult[] | null>(null);
   const [chartLoading, setChartLoading] = useState(false);
   const [aiBriefing, setAiBriefing] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
 
-  const loadData = useCallback(async (c: CountryDiseaseData) => {
+  const loadData = useCallback(async (c: CountryDiseaseData, d: DiseaseDef) => {
     setChartLoading(true);
     try {
-      const hist = await fetchHistorical(c.country);
+      const hist = d.id === 'covid19'
+        ? await fetchHistorical(c.country)
+        : synthesizeHistorical(c, d);
       setHistorical(hist);
-      const pred = runSIRModel(c.population, c.active, c.recovered, 30);
+      const pred = runSIRModel(c.population, c.active, c.recovered, 30, d.beta, d.gamma);
       setPredictions(pred);
     } catch {
-      setHistorical(null);
-      setPredictions(null);
+      // fallback to synth if real fetch fails
+      setHistorical(synthesizeHistorical(c, d));
+      setPredictions(runSIRModel(c.population, c.active, c.recovered, 30, d.beta, d.gamma));
     }
     setChartLoading(false);
   }, []);
 
-  const generateBriefing = useCallback((c: CountryDiseaseData, mode: string) => {
+  const generateBriefing = useCallback((c: CountryDiseaseData, mode: string, d: DiseaseDef) => {
     setAiLoading(true);
-    const severity = getSeverityLevel(c.active);
+    const severity = severityLevelFor(c.active, d);
     const trend = c.todayCases > 0 ? 'increasing' : 'stable or decreasing';
-    const briefing = `COVID-19 in ${c.country} (${mode} analysis): Currently ${severity} risk with ${c.active.toLocaleString()} active cases. The disease spreads primarily via respiratory droplets and aerosol transmission. Current trend is ${trend} with ${c.todayCases.toLocaleString()} new cases reported today. ${c.recovered.toLocaleString()} recoveries indicate ongoing containment efforts. Key prevention: maintain hand hygiene, wear masks in crowded indoor spaces, and stay up to date with vaccinations.`;
+    const briefing = `${d.name} in ${c.country} (${mode} analysis): Currently ${severity} risk with ${c.active.toLocaleString()} active cases out of ${c.cases.toLocaleString()} total. ${d.description} Transmission: ${d.transmission}. Basic reproduction number R₀≈${d.R0.toFixed(1)}. Trend is ${trend} with ${c.todayCases.toLocaleString()} new cases today and ${c.deaths.toLocaleString()} cumulative deaths. Prevention depends on transmission route — reduce exposure, vaccinate where available, and follow local health guidance.`;
     setTimeout(() => {
       setAiBriefing(briefing);
       setAiLoading(false);
-    }, 600);
+    }, 400);
   }, []);
 
   useEffect(() => {
     if (country) {
-      loadData(country);
-      generateBriefing(country, timeMode);
+      loadData(country, disease);
+      generateBriefing(country, timeMode, disease);
     }
-  }, [country, timeMode, loadData, generateBriefing]);
+  }, [country, timeMode, disease, loadData, generateBriefing]);
 
   if (!country) return null;
 
-  const severity = getSeverityLevel(country.active);
+  const severity = severityLevelFor(country.active, disease);
   const forecast = predictions ? getRiskForecast(predictions) : null;
 
   return (
@@ -115,6 +120,9 @@ export default function SidePanel({ country, countryName, timeMode, onClose }: S
                 {country.continent}
               </span>
             </div>
+          </div>
+          <div className="mt-2 text-[11px]" style={{ color: '#00FFD1' }}>
+            ◆ {disease.name} <span style={{ color: '#E8EDF555' }}>· {disease.year}</span>
           </div>
           <div
             className="inline-block mt-2 px-2 py-0.5 text-[10px] tracking-[0.1em] uppercase font-medium"
