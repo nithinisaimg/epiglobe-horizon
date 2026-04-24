@@ -51,6 +51,44 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   );
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getPrecautions(transmission: string): string[] {
+  const t = transmission.toLowerCase();
+  if (t.includes("mosquito") || t.includes("vector")) {
+    return [
+      "Remove standing water near homes and use larvicide where advised.",
+      "Use insecticide-treated nets and repellents, especially at dusk/night.",
+      "Wear long sleeves in high-risk outdoor areas.",
+      "Coordinate local vector-control drives and hotspot surveillance.",
+    ];
+  }
+  if (t.includes("airborne") || t.includes("aerosol") || t.includes("droplet")) {
+    return [
+      "Improve indoor ventilation and use high-filtration masks in crowded spaces.",
+      "Prioritize vaccination and boosters for vulnerable groups.",
+      "Reduce crowding during spikes and isolate symptomatic people early.",
+      "Scale rapid testing and contact notification for clusters.",
+    ];
+  }
+  if (t.includes("bodily fluid") || t.includes("lesion") || t.includes("close contact")) {
+    return [
+      "Avoid direct contact with lesions, blood, or contaminated materials.",
+      "Use gloves, hand hygiene, and disinfection for shared surfaces.",
+      "Isolate suspected cases quickly and trace close contacts.",
+      "Deploy ring-vaccination or post-exposure prophylaxis where available.",
+    ];
+  }
+  return [
+    "Strengthen early testing and surveillance in affected areas.",
+    "Promote hygiene, distancing in outbreaks, and targeted vaccination.",
+    "Protect high-risk groups with rapid clinical access.",
+    "Share timely public-health alerts and local guidance.",
+  ];
+}
+
 export default function SidePanel({
   country,
   countryName,
@@ -103,6 +141,26 @@ export default function SidePanel({
   const severity = severityLevelFor(country.active, disease);
   const forecast = predictions ? getRiskForecast(predictions) : null;
   const info = getDiseaseInfo(disease.id);
+  const spreadProbability = (() => {
+    const activeRate = country.active / Math.max(country.population, 1);
+    const todayRate = country.todayCases / Math.max(country.active, 1);
+    const baseFromR0 = ((disease.R0 - 1) / 2) * 55;
+    const pressureFromActive = activeRate * 100 * 45;
+    const pressureFromToday = todayRate * 100 * 0.9;
+    const trendBoost =
+      forecast?.trend === "increasing" ? 15 : forecast?.trend === "decreasing" ? -12 : 0;
+    return Math.round(clamp(baseFromR0 + pressureFromActive + pressureFromToday + trendBoost, 5, 98));
+  })();
+  const willSpread = spreadProbability >= 55 || (forecast?.trend === "increasing" && country.todayCases > 0);
+  const weeklyPoint = predictions?.[Math.min(7, (predictions?.length ?? 1) - 1)];
+  const basePoint = predictions?.[0];
+  const spreadRatePerDay = weeklyPoint
+    ? ((weeklyPoint.infected - Math.max(basePoint?.infected ?? 0, 1)) /
+        Math.max(basePoint?.infected ?? 1, 1) /
+        Math.max(weeklyPoint.day, 1)) *
+      100
+    : 0;
+  const precautions = getPrecautions(disease.transmission);
 
   return (
     <div
@@ -237,6 +295,53 @@ export default function SidePanel({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Spread prediction */}
+        <div>
+          <div
+            className="text-[10px] tracking-[0.15em] uppercase mb-2 flex items-center gap-2"
+            style={{ color: willSpread ? "#FF6B35" : "#1DB954" }}
+          >
+            <span>◉</span> Spread Prediction
+          </div>
+          <div
+            className="p-3 space-y-2"
+            style={{
+              background: "#0D1525",
+              border: "1px solid #1A2540",
+              borderLeft: `2px solid ${willSpread ? "#FF6B35" : "#1DB954"}`,
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[11px]" style={{ color: "#E8EDF599" }}>
+                Spread chance
+              </div>
+              <div className="text-base font-semibold" style={{ color: willSpread ? "#FF6B35" : "#1DB954" }}>
+                {spreadProbability}%
+              </div>
+            </div>
+            <div className="text-xs" style={{ color: "#E8EDF5CC" }}>
+              {willSpread ? "Likely to spread in coming days." : "Currently likely to remain controlled."}
+            </div>
+            <div className="text-[11px]" style={{ color: "#E8EDF599" }}>
+              Estimated rate:{" "}
+              <span style={{ color: spreadRatePerDay >= 0 ? "#FFB347" : "#1DB954" }}>
+                {spreadRatePerDay >= 0 ? "+" : ""}
+                {spreadRatePerDay.toFixed(2)}% infected/day (7-day SIR estimate)
+              </span>
+            </div>
+            <div className="pt-2 mt-2 space-y-1" style={{ borderTop: "1px solid #1A2540" }}>
+              <div className="text-[11px] uppercase tracking-[0.08em]" style={{ color: "#E8EDF566" }}>
+                Recommended precautions
+              </div>
+              {precautions.map((item) => (
+                <div key={item} className="text-xs leading-relaxed" style={{ color: "#E8EDF5CC" }}>
+                  • {item}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
