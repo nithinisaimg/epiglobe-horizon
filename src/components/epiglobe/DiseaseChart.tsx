@@ -145,7 +145,7 @@ export default function DiseaseChart({
         }
       }
 
-      chartRef.current = new Chart(ctx, {
+      chartRef.current = new Chart<"line", (number | null)[], string>(ctx, {
         type: "line",
         data: { labels, datasets },
         options: {
