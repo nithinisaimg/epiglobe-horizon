@@ -323,7 +323,10 @@ export function synthesizeCountryData(
     const prevalence = disease.globalPrevalence * w * rnd;
     const cases = Math.round(c.population * prevalence);
     const deaths = Math.round(cases * disease.cfr);
-    const recovered = Math.round(cases * 0.85);
+    // Recovered = survivors who have already recovered. Cap so deaths+recovered <= cases.
+    const survivors = Math.max(0, cases - deaths);
+    const recoveredRate = Math.min(0.85, Math.max(0, 1 - disease.cfr - 0.1));
+    const recovered = Math.round(survivors * recoveredRate);
     const active = Math.max(0, cases - deaths - recovered);
     const todayCases = Math.round(
       active * (0.005 + hashStr(`t-${disease.id}-${c.country}`) * 0.02),
@@ -380,7 +383,8 @@ export function synthesizeHistorical(
     const key = `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;
     cases[key] = Math.round(total * logistic);
     deaths[key] = Math.round(totalDeaths * logistic);
-    recovered[key] = Math.round(total * 0.85 * Math.max(0, logistic - 0.05));
+    const recoveredRate = Math.min(0.85, Math.max(0, 1 - disease.cfr - 0.1));
+    recovered[key] = Math.round(total * recoveredRate * Math.max(0, logistic - 0.05));
   }
   return { timeline: { cases, deaths, recovered } };
 }
